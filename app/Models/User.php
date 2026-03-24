@@ -8,6 +8,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -35,10 +36,12 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return str_ends_with($this->email, '@yourdomain.com') && $this->hasVerifiedEmail();
+        return $this->hasAnyRole(['superadmin', 'desarrollador']);
     }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -54,8 +57,9 @@ class User extends Authenticatable
     protected static function booted()
     {
         static::created(function ($user) {
-            // Asigna por defecto el rol "developer"
-            $user->assignRole('developer');
+            if (! $user->hasAnyRole(['superadmin', 'desarrollador']) && Role::where('name', 'desarrollador')->exists()) {
+                $user->assignRole('desarrollador');
+            }
         });
     }
 }

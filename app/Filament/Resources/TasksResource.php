@@ -5,11 +5,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TasksResource\Pages;
 use App\Filament\Resources\TasksResource\RelationManagers;
 use App\Models\Tasks;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -19,7 +21,8 @@ class TasksResource extends Resource
 
     protected static ?string $navigationGroup = 'Gestión de Proyectos';
     protected static ?string $navigationLabel = 'Tareas';
-    protected static ?string $pluralLabel = 'Tareas';
+    protected static ?string $modelLabel = 'tarea';
+    protected static ?string $pluralModelLabel = 'tareas';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -105,7 +108,7 @@ class TasksResource extends Resource
                     ->badge(),
                 Tables\Columns\TextColumn::make('assigned_to')
                     ->label('Asignado a')
-                    ->numeric()
+                    ->formatStateUsing(fn ($state, $record): string => $record->assignedTo?->name ?? (string) $state)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('reason')
                     ->label('Razón')
@@ -135,13 +138,15 @@ class TasksResource extends Resource
                         default => 'secondary',
                     })
                     ->badge(),
-                Tables\Columns\TextColumn::make('project_id')
+                Tables\Columns\TextColumn::make('project.name')
                     ->label('Proyecto')
-                    ->numeric()
+                    ->searchable()
                     ->sortable()
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->label('Editar')
+                    ->visible(fn (): bool => static::currentUser()?->hasRole('superadmin') ?? false),
                 Tables\Actions\Action::make('toggleStatus')
                     ->label('Iniciar')
                     ->icon('heroicon-o-play')
@@ -150,16 +155,63 @@ class TasksResource extends Resource
                             'status' => $record->status === 'pending' ? 'in_progress' : 'pending',
                         ]);
                     })
-                    ->color(fn ($record) => $record->status === 'pending' ? 'warning' : 'secondary'),
+                    ->color(fn ($record) => $record->status === 'pending' ? 'warning' : 'secondary')
+                    ->visible(fn (): bool => static::currentUser()?->hasRole('superadmin') ?? false),
             ])
             ->filters([
                 //
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Eliminar seleccionados')
+                        ->visible(fn (): bool => static::currentUser()?->hasRole('superadmin') ?? false),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = static::currentUser();
+
+        if ($user?->hasRole('desarrollador')) {
+            return $query->where('assigned_to', $user->id);
+        }
+
+        return $query;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUser()?->hasAnyRole(['superadmin', 'desarrollador']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::currentUser()?->hasRole('superadmin') ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return static::currentUser()?->hasRole('superadmin') ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return static::currentUser()?->hasRole('superadmin') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::currentUser()?->hasRole('superadmin') ?? false;
+    }
+
+    protected static function currentUser(): ?User
+    {
+        $user = Auth::user();
+
+        return $user instanceof User ? $user : null;
     }
 
     public static function getRelations(): array

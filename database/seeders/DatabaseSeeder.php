@@ -13,16 +13,27 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'admin2',
-            'email' => 'admin2@gmail.com',
-            'password' => bcrypt('admin1234')
-        ]);
         $this->call([
-            RolesSeeder::class,]);
+            RolesSeeder::class,
+        ]);
+
+        $superadmin = User::firstOrCreate([
+            'email' => 'admin2@gmail.com',
+        ], [
+            'name' => 'admin2',
+            'password' => bcrypt('admin1234'),
+        ]);
+
+        $superadmin->syncRoles(['superadmin']);
+
+        $desarrollador = User::updateOrCreate([
+            'email' => 'dev1@gmail.com',
+        ], [
+            'name' => 'dev1',
+            'password' => bcrypt('dev12345'),
+        ]);
+
+        $desarrollador->syncRoles(['desarrollador']);
     }
-
-
 }
+

@@ -13,7 +13,7 @@ class ListProjects extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Crear Proyecto')
+            Actions\CreateAction::make()->label('Crear proyecto')
         ];
     }
 }

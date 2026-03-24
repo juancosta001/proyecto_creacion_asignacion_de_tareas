@@ -21,6 +21,3 @@ class Projects extends Model
         return $this->belongsTo(Clients::class, 'client_id');
     }
 }
-{
-    //
-}

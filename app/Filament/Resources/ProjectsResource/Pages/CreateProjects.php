@@ -14,7 +14,7 @@ class CreateProjects extends CreateRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Crear Proyecto')
+            Actions\CreateAction::make()->label('Crear proyecto')
         ];
     }
     protected function getRedirectUrl(): string

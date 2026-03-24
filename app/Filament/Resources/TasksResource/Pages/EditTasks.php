@@ -13,7 +13,12 @@ class EditTasks extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()->label('Eliminar'),
         ];
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('filament.admin.resources.tasks.index');
     }
 }
