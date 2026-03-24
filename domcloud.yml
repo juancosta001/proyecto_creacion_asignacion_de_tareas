@@ -1,6 +1,11 @@
 # DOM Cloud deployment script for Laravel + Vite
 # Docs: https://domcloud.co/docs/deployment/deploy
 
+source:
+  url: https://github.com/juancosta001/proyecto_creacion_asignacion_de_tareas.git
+  type: clone
+  branch: main
+
 features:
   - php 8.3
   - node lts
@@ -14,12 +19,28 @@ nginx:
       try_files: $uri $uri/ /index.php$is_args$args
 
 commands:
+  # Create env file if missing
+  - test -f .env || cp .env.example .env
+
   # Ensure writable folders exist
   - mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
   - chmod -R ug+rwx storage bootstrap/cache
 
   # Backend dependencies
   - composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+  # Runtime environment for DOM Cloud
+  - sed -i "s|^APP_ENV=.*|APP_ENV=production|" .env
+  - sed -i "s|^APP_DEBUG=.*|APP_DEBUG=false|" .env
+  - sed -i "s|^APP_URL=.*|APP_URL=https://$DOMAIN|" .env
+  - sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|" .env
+  - sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|" .env
+  - sed -i "s|^DB_PORT=.*|DB_PORT=3306|" .env
+  - sed -i "s|^DB_DATABASE=.*|DB_DATABASE=$DATABASE|" .env
+  - sed -i "s|^DB_USERNAME=.*|DB_USERNAME=$USERNAME|" .env
+  - sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$MYPASSWD|" .env
+  - sed -i "s|^SESSION_DRIVER=.*|SESSION_DRIVER=file|" .env
+  - php artisan key:generate --force
 
   # Frontend build
   - npm ci
@@ -28,5 +49,8 @@ commands:
   # Laravel runtime setup
   - php artisan storage:link || true
   - php artisan migrate --force
+  - php artisan db:seed --class=DatabaseSeeder --force
+  - php artisan db:seed --force
+  - php artisan permission:cache-reset || true
   - php artisan optimize:clear
   - php artisan optimize
